@@ -1,90 +1,68 @@
-#include "thingProperties.h"
+// Pin Definitions
+const int ledPin = LED_BUILTIN;  // Built-in LED
+const int buttonPin = 2;         // Push button connected to pin 2
 
-// Define the LED pin
-const int ledPin = LED_BUILTIN;
+// Morse code timing
+const int dotDuration = 200;     // Duration of a dot
+const int dashDuration = dotDuration * 3; // Duration of a dash
+const int letterSpace = dotDuration * 3;  // Space between letters
+const int wordSpace = dotDuration * 7;    // Space between words
 
-// Morse Code Timing (in milliseconds)
-const int dotDuration = 200;
-const int dashDuration = 600;
-const int letterPause = 600;
-const int wordPause = 1400;
+// Morse code for "aryan"
+String morseCode = ".- .-. -.-- .- -.";  // Morse code for aryan
+String name = "aryan"; // Name in alphabetic form
 
-// Morse code sequence for "ARYAN"
-String morseCode[] = { ".-", ".-.", "-.--", ".-", "-." };
-
-// Variable to track the current position in Morse code sequence
-int currentCharIndex = 0;
-bool isBlinking = false;
+bool buttonState = HIGH;
+bool lastButtonState = HIGH;
 
 void setup() {
-  // Initialize serial and wait for port to open:
-  Serial.begin(9600);
-  // Set LED pin as output
-  pinMode(ledPin, OUTPUT);
-  delay(1500);
-
-  // Initialize cloud properties
-  initProperties();
-
-  // Connect to Arduino IoT Cloud
-  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
-
-  // Debugging
-  setDebugMessageLevel(2);
-  ArduinoCloud.printDebugInfo();
+  pinMode(ledPin, OUTPUT);        // Initialize the LED pin as an output
+  pinMode(buttonPin, INPUT_PULLUP); // Initialize the button pin as an input with pull-up resistor
+  Serial.begin(9600);             // Start the serial communication
 }
 
 void loop() {
-  // Update Arduino IoT Cloud
-  ArduinoCloud.update();
+  buttonState = digitalRead(buttonPin);
+  
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    // Print name in alphabetic form
+    Serial.print("Name: ");
+    Serial.println(name);
+    
+    // Print name in Morse code
+    Serial.print("Morse Code: ");
+    Serial.println(morseCode);
+    
+    // Blink Morse code
+    for (int i = 0; i < morseCode.length(); i++) {
+      if (morseCode[i] == '.') {
+        blinkDot();
+      } else if (morseCode[i] == '-') {
+        blinkDash();
+      } else if (morseCode[i] == ' ') {
+        delay(wordSpace);
+      }
 
-  // If blinking is active, blink the name in Morse code
-  if (isBlinking) {
-    blinkName();
-  } else {
-    digitalWrite(ledPin, LOW);  // Ensure LED is off when not blinking
-  }
-}
-
-// Function to blink Morse code for a given code
-void blinkMorse(String code) {
-  for (int i = 0; i < code.length(); i++) {
-    if (code[i] == '.') {
-      digitalWrite(ledPin, HIGH);
-      delay(dotDuration);
-      digitalWrite(ledPin, LOW);
-    } else if (code[i] == '-') {
-      digitalWrite(ledPin, HIGH);
-      delay(dashDuration);
-      digitalWrite(ledPin, LOW);
+      // Check if the button is pressed again to reset
+      if (digitalRead(buttonPin) == LOW) {
+        i = -1; // Reset the loop index to start from the beginning
+      }
     }
-    delay(dotDuration);  // Pause between dots and dashes
   }
+
+  lastButtonState = buttonState;
 }
 
-// Function to blink the name "ARYAN" in Morse code
-void blinkName() {
-  // Blink current character
-  blinkMorse(morseCode[currentCharIndex]);
-  delay(letterPause);  // Pause between letters
-
-  // Move to the next character
-  currentCharIndex++;
-  
-  // If all characters are done, reset to the beginning
-  if (currentCharIndex >= 5) {
-    currentCharIndex = 0;
-    delay(wordPause);  // Pause between repetitions
-  }
+void blinkDot() {
+  digitalWrite(ledPin, HIGH);
+  delay(dotDuration);
+  digitalWrite(ledPin, LOW);
+  delay(dotDuration);
 }
 
-// This function is called whenever the LED variable changes
-void onLedChange() {
-  // Start or stop blinking based on the new value of LED
-  isBlinking = led;
-  
-  // Reset the blinking sequence when starting
-  if (isBlinking) {
-    currentCharIndex = 0;  // Reset to start of Morse code
-  }
+void blinkDash() {
+  digitalWrite(ledPin, HIGH);
+  delay(dashDuration);
+  digitalWrite(ledPin, LOW);
+  delay(dotDuration);
 }
